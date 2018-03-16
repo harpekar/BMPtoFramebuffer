@@ -2,18 +2,16 @@
 #define BITMAP_H
 
 #include <fstream>
-#include <iostream>
 #include <vector>
-#include <stdio.h>
-#include <stdint.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
+#include <stdexcept>
+#include <cstdint>
 
 #include "pixel.hpp"
 
 constexpr static Pixel const MAGENTA { 255, 0, 255, 255 };
 
 struct Bitmap {
+private:
     enum bitmap_index {
         SIZE    = 0x02,
         OFFSET  = 0x0A,
@@ -22,8 +20,8 @@ struct Bitmap {
         PIXSIZE = 0x1C,
     };
 
-    uint32_t x;
-    uint32_t y;
+    uint32_t x_resolution;
+    uint32_t y_resolution;
     std::vector<Pixel> pixels;
 
     template<typename ReadType>
@@ -34,55 +32,63 @@ struct Bitmap {
         return buffer;
     }
 
+    // template<typename T, typename U>
+    // static T real_modulo(T lhs, U rhs) {
+    //     return ((lhs % rhs) + rhs) % rhs;
+    // }
+
+public:
     Bitmap(char const * const filename) {
         std::ifstream file{filename, std::ios::binary};
         
-        x = read_at<uint32_t>(file, bitmap_index::WIDTH);
-        y = read_at<uint32_t>(file, bitmap_index::HEIGHT);
+        x_resolution = read_at<uint32_t>(file, bitmap_index::WIDTH);
+        y_resolution = read_at<uint32_t>(file, bitmap_index::HEIGHT);
 
-        if (x == 0 || y == 0) {
-            printf("Failed to load image: dimensions are zero\n");
-            exit(1);
-        }
+        if (x_resolution == 0 || y_resolution == 0)
+            throw std::runtime_error("Failed to load image: dimensions are zero");
 
-        uint32_t image_offset = read_at<uint32_t>(file, bitmap_index::OFFSET);
-        file.seekg(image_offset + 1);
+        uint32_t const image_offset{
+            read_at<uint32_t>(file, bitmap_index::OFFSET)
+        };
+        file.seekg(image_offset);
         
-        size_t const num_pixels = x * y;
+        size_t const num_pixels = x_resolution * y_resolution;
         // Bitmaps are word-aligned
-        size_t const line_bytes = x * 3;
+        size_t const line_bytes = x_resolution * 3;
         size_t const padding_bytes{(4 - (line_bytes % 4)) % 4};
 
-        for (size_t y_iter{0}; y_iter < y; y_iter++) {
-            for (size_t x_iter{0}; x_iter < x; x_iter++) {
+        for (size_t y{0}; y < y_resolution; y++) {
+            for (size_t x{0}; x < x_resolution; x++) {
                 Pixel pixel;
 
+                pixel.b = file.get();
                 pixel.g = file.get();
                 pixel.r = file.get();
-                pixel.b = file.get();
                 pixel.a = 255; //file.get();
 
                 pixels.push_back(pixel);
             }
             for (size_t i{0}; i < padding_bytes; i++) {
+                // Discard padding bytes
                 file.get();
             }
         }
-
-        puts("Pixels:");
-        for (int i{0}; i < 4; i++) {
-            Pixel p = pixels[i];
-            printf("%X %X %X\n", p.r, p.b, p.g);
-        }
     }
 
-    Pixel read_pixel(size_t input_x, size_t input_y) const {
-        if (input_y > y) return MAGENTA; // Clipping
+    uint32_t get_x_res() const { return x_resolution; }
+    uint32_t get_y_res() const { return y_resolution; }
+    
+    Pixel read_pixel(ssize_t x, ssize_t y) const {
+        // Vertical clipping
+        if (y >= y_resolution || y < 0)
+            return MAGENTA;
 
-        input_x %= x; // Wrapping
-        input_y = y - input_y; // Inversion
+        // Wrapping
+        x %= x_resolution;
+        // Vertical inversion
+        y = y_resolution - y;
         
-        return pixels[(input_y * x) + input_x + 1];
+        return pixels[(y * x_resolution) + x];
     }       
 };   
 

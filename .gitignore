@@ -1,3 +1,4 @@
-crop-0.bmp
-crop-1.bmp
-crop-2.bmp
+*.bmp
+bmpread
+Images/
+.vscode
