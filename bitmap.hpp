@@ -48,7 +48,11 @@ struct Bitmap {
         uint32_t image_offset = read_at<uint32_t>(file, bitmap_index::OFFSET);
         file.seekg(image_offset + 1);
         
-        size_t num_pixels = x * y;
+        size_t const num_pixels = x * y;
+        // Bitmaps are word-aligned
+        size_t const line_bytes = x * 3;
+        size_t const padding_bytes{(4 - (line_bytes % 4)) % 4};
+
         for (size_t y_iter{0}; y_iter < y; y_iter++) {
             for (size_t x_iter{0}; x_iter < x; x_iter++) {
                 Pixel pixel;
@@ -60,7 +64,9 @@ struct Bitmap {
 
                 pixels.push_back(pixel);
             }
-            file.get();
+            for (size_t i{0}; i < padding_bytes; i++) {
+                file.get();
+            }
         }
 
         puts("Pixels:");
