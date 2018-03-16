@@ -7,17 +7,13 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 
+#include "pixel.hpp"
+#include "bitmap.hpp"
+
 void error_out(char const * const message, int const code) {
     fputs(message, stderr);
     exit(code);
 }
-
-struct Bgra {  //Blue, Green, Red, Alpha (opacity) --default format for BITMAP images
-    uint8_t b;
-    uint8_t g;
-    uint8_t r;
-    uint8_t a;
-};
 
 struct Framebuffer {
     int file;
@@ -74,34 +70,41 @@ struct Framebuffer {
     uint8_t * buffer_location(size_t const x, size_t const y) {
         return buffer +
             (x + info_var.xoffset) * (info_var.bits_per_pixel / 8) +
-            (y + info_var.yoffset) * (info_fix.line_length       );
+            (y + info_var.yoffset) * (info_fix.line_length);
     }
 
-    void write_pixel(size_t const x, size_t const y, Bgra const color) {
+    void write_pixel(size_t const x, size_t const y, Pixel const color) {
         auto const location = buffer_location(x, y);
-        auto const pixel32 = reinterpret_cast<Bgra *>(location);
-        auto const pixel16 = reinterpret_cast<uint16_t *>(location);
-
-        switch (info_var.bits_per_pixel) {
-        case 32:
-            *pixel32 = color;
-            break;
-
-        case 16:
-        default:
-            *pixel16 = (
-                (color.r / 16) << 11 |
-                (color.g / 16) << 5  |
-                (color.b / 16) << 0
-            );
-            break;
-        }
+        auto const pixel32 = reinterpret_cast<Pixel *>(location);
+        *pixel32 = color;
     }
     
-    void write_line(size_t const y, Bgra const * const pixels, size_t const width) {
-        size_t num_bytes{width * sizeof(Bgra)};
+    void write_line(size_t const y, Pixel const * const pixels, int startx, int width) {
+        size_t num_bytes{width * sizeof(Pixel)};
         uint8_t * line_start{buffer_location(0, y)};
         memcpy(line_start, pixels, num_bytes);
+    }
+
+    template<typename T, typename U>
+    T real_modulo(T lhs, U rhs) {
+        return ((lhs % rhs) + rhs) % rhs;
+    }
+
+    void write_fullscreen(Bitmap const & bitmap, size_t startx, size_t starty) {
+        size_t const
+            screen_width{info_var.xres},
+            screen_height{info_var.yres};
+        
+        for (int screen_y{0}; screen_y < screen_height; screen_y++) { 
+            for (int screen_x{0}; screen_x < screen_width; screen_x++) {
+                size_t
+                    bitmap_x = startx + screen_x,
+                    bitmap_y = starty + screen_y;
+                
+                Pixel screen_color = bitmap.read_pixel(bitmap_x, bitmap_y);
+                write_pixel(screen_x, screen_y, screen_color);
+            }
+         }
     }
 };
 

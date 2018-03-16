@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
     struct { size_t x; size_t y; } pos;
     for (pos.x = 100; pos.x < 200; pos.x++) {
         for (pos.y = 100; pos.y < 200; pos.y++) {
-            Bgra color { 100, 150, 255, 100 };
+            Pixel color { 100, 150, 255, 100 };
             fb.write_pixel(pos.x, pos.y, color);
         }
     }
