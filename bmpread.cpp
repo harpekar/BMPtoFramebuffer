@@ -3,10 +3,11 @@
 
 #include "bitmap.hpp"
 #include "framebuffer.hpp"
+#include "imageviewer.hpp"
 
 int main(int argc, char* argv[]){
     ssize_t
-        startx{-200},
+        startx{0},
         starty{0};
     
     if (argc < 3) {
@@ -14,10 +15,9 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-    Framebuffer fb{argv[2]}; 
-    Bitmap bitmap{argv[1]};
-    
-    fb.write_fullscreen(bitmap, startx, starty);
+    ImageViewer im{argv[2],argv[1]};
+
+    im.draw();
 
     return 0;
 }

@@ -8,7 +8,7 @@ struct ImageViewer {
 private:
     Framebuffer framebuffer;
     Bitmap bitmap;
-    struct { ssize_t x; ssize_t y; } scroll{ 0, 0 };
+    struct { ssize_t x; ssize_t y; } position{ 0, 0 };
 
     static size_t const STEP{20}; // Step size of 20px
 
@@ -23,34 +23,34 @@ public:
         bitmap{Bitmap{bmp_filename}}
     {}
 
-    void update() {
-        framebuffer.write_fullscreen(bitmap, scroll.x, scroll.y);
+    void draw() {
+        framebuffer.write_fullscreen(bitmap, position.x, position.y);
     }
 
     void scroll(Direction direction) {
         switch (direction) {
         case Direction::DOWN:
             if (framebuffer.get_y_res() > bitmap.get_y_res())
-                scroll.y = std::max<size_t>(scroll.y - STEP, 0);
+                position.y = std::max<size_t>(position.y - STEP, 0);
             break;
 
         case Direction::UP:
             if (framebuffer.get_y_res() > bitmap.get_y_res())
-                scroll.y = std::min<size_t>(
-                    scroll.y + STEP,
+                position.y = std::min<size_t>(
+                    position.y + STEP,
                     bitmap.get_y_res() - framebuffer.get_y_res()
                 );
             break;
 
         case Direction::LEFT:
-            scroll.x -= STEP;
+            position.x -= STEP;
             break;
 
         case Direction::RIGHT:
-            scroll.x += STEP;
+            position.x += STEP;
             break;
         }
-        update();
+        draw();
     }
 };
 

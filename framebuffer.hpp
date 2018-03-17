@@ -1,3 +1,6 @@
+#ifndef FRAMEBUFFER_HPP
+#define FRAMEBUFFER_HPP
+
 #include <stdexcept>
 #include <cstdint>
 #include <cerrno>
@@ -102,3 +105,4 @@ public:
     }
 };
 
+#endif
