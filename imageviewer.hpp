@@ -13,7 +13,7 @@ private:
     static size_t const STEP{20}; // Step size of 20px
 
 public:
-    enum struct Direction { DOWN, UP, LEFT, RIGHT };
+    enum struct Direction { NONE, DOWN, UP, LEFT, RIGHT };
 
     ImageViewer(
         char const * const fb_filename,
@@ -29,6 +29,9 @@ public:
 
     void scroll(Direction direction) {
         switch (direction) {
+        case Direction::NONE:
+            return;
+
         case Direction::DOWN:
             if (framebuffer.get_y_res() > bitmap.get_y_res())
                 position.y = std::max<size_t>(position.y - STEP, 0);

@@ -32,10 +32,10 @@ private:
         return buffer;
     }
 
-    // template<typename T, typename U>
-    // static T real_modulo(T lhs, U rhs) {
-    //     return ((lhs % rhs) + rhs) % rhs;
-    // }
+    template<typename T, typename U>
+    static T real_modulo(T lhs, U rhs) {
+        return ((lhs % rhs) + rhs) % rhs;
+    }
 
 public:
     Bitmap(char const * const filename) {
@@ -84,6 +84,7 @@ public:
             return MAGENTA;
 
         // Wrapping
+        // x = real_modulo(x, x_resolution);
         x %= x_resolution;
         // Vertical inversion
         y = y_resolution - y;

@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <cerrno>
 #include <cstring>
-#include <iostream>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -26,8 +25,8 @@ private:
 
     uint8_t * buffer_location(size_t const x, size_t const y) {
         return buffer +
-            (x + info_var.xoffset) * (info_var.bits_per_pixel / 8) +
-            (y + info_var.yoffset) * (info_fix.line_length);
+            (info_var.xoffset + x) * (info_var.bits_per_pixel / 8) +
+            (info_var.yoffset + y) * (info_fix.line_length);
     }
 
 public:
@@ -84,22 +83,41 @@ public:
     void write_pixel(size_t const x, size_t const y, Pixel const color) {
         auto const location = buffer_location(x, y);
         auto const pixel32 = reinterpret_cast<Pixel *>(location);
+        auto const pixel16 = reinterpret_cast<uint16_t*>(location);
+    
+    switch(info_var.bits_per_pixel) {
+    case 32: 
         *pixel32 = color;
+        break;
+
+    case 16:
+    default:
+        *pixel16 = (
+            ((color.r >> 3) << 11) | // 5 bits red
+            ((color.g >> 2) <<  5) | // 6 bits green
+            ((color.b >> 3) <<  0)   // 5 bits blue
+        );
+        break;   
     }
 
-    void write_fullscreen(Bitmap const & bitmap, ssize_t startx, ssize_t starty) {
-        size_t const
-            screen_width{info_var.xres},
-            screen_height{info_var.yres};
-        
-        for (int screen_y{0}; screen_y < screen_height; screen_y++) { 
-            for (int screen_x{0}; screen_x < screen_width; screen_x++) {
-                ssize_t
-                    bitmap_x{startx + screen_x},
-                    bitmap_y{starty + screen_y};
-                
-                Pixel screen_color = bitmap.read_pixel(bitmap_x, bitmap_y);
-                write_pixel(screen_x, screen_y, screen_color);
+    }
+
+    void write_fullscreen(Bitmap const & bitmap, ssize_t start_x, ssize_t start_y) {
+     //   printf(
+     //       "Coordinates %d mod %d = %d\n",
+     //       start_x,
+     //       bitmap.get_x_res(),
+     //       start_x % bitmap.get_x_res()
+     //   );
+        for (ssize_t screen_y{0}; screen_y < 320; screen_y++) { 
+            for (ssize_t screen_x{0}; screen_x < info_var.xres; screen_x++) {
+                write_pixel(
+                    screen_x, screen_y,
+                    bitmap.read_pixel(
+                        start_x + screen_x,
+                        start_y + screen_y
+                    )
+                );
             }
          }
     }
